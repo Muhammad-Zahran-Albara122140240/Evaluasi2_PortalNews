@@ -1,3 +1,6 @@
+Nama    : Muhammad Zahran Albara
+NIM     : 122140240
+
 # 📰 News Portal App
 
 Aplikasi Portal berita dengan fitur login aman, pemilihan sumber berita, dan tampilan detail berita hasil scraping. Proyek ini memanfaatkan OAuth2 melalui Google Cloud untuk otentikasi pengguna, serta mengintegrasikan beberapa sumber berita dalam satu platform sederhana.
