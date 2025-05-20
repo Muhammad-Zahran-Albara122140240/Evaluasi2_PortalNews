@@ -2,8 +2,9 @@
 
 import { scrapeBeritaList } from '@/lib/scraper';
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
-function removeDuplicateBerita(berita) {
+function removeDuplicateBerita(berita: any[]) {
   const seen = new Map();
 
   for (const item of berita) {
@@ -22,8 +23,8 @@ function removeDuplicateBerita(berita) {
   return Array.from(seen.values());
 }
 
-export default function BeritaPage({ beritalist = [] }) {
-  const [berita, setBerita] = useState([]);
+export default function BeritaPage({ beritalist = [] }: { beritalist?: any[] }) {
+  const [berita, setBerita] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -50,7 +51,6 @@ export default function BeritaPage({ beritalist = [] }) {
 
   return (
     <div className="bg-orange-50 min-h-screen">
-      {/* Header */}
       <header className="bg-white py-6 shadow-md">
         <div className="px-4 max-w-xl mx-auto">
           <h1 className="text-3xl md:text-4xl font-bold text-orange-500 text-center">
@@ -59,9 +59,7 @@ export default function BeritaPage({ beritalist = [] }) {
         </div>
       </header>
 
-      {/* News Content */}
       <main className="container mx-auto px-4 py-8">
-        {/* News Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {loading ? (
             <div className="flex justify-center items-center col-span-full h-64">
@@ -69,9 +67,10 @@ export default function BeritaPage({ beritalist = [] }) {
             </div>
           ) : berita.length > 0 ? (
             berita.map((item, i) => (
-              <div
+              <Link
                 key={`${item.slug}-${i}`}
-                className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300"
+                href={`/news/${item.slug}`}
+                className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 block"
               >
                 {item.image && (
                   <div className="relative h-48 overflow-hidden">
@@ -83,19 +82,14 @@ export default function BeritaPage({ beritalist = [] }) {
                   </div>
                 )}
                 <div className="p-4">
-                  <a
-                    href={item.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-orange-700 hover:text-orange-500 font-bold text-lg block mb-2"
-                  >
+                  <h2 className="text-orange-700 hover:text-orange-500 font-bold text-lg mb-2">
                     {item.title}
-                  </a>
+                  </h2>
                   <div className="text-gray-500 text-sm mt-2">
                     {item.date || 'Tanggal tidak tersedia'}
                   </div>
                 </div>
-              </div>
+              </Link>
             ))
           ) : (
             <div className="col-span-full text-center py-10">
@@ -105,7 +99,6 @@ export default function BeritaPage({ beritalist = [] }) {
         </div>
       </main>
 
-      {/* Footer */}
       <footer className="bg-orange-600 text-white py-4 mt-8">
         <div className="container mx-auto px-4 text-center">
           <p>© {new Date().getFullYear()} CNN Indonesia</p>
