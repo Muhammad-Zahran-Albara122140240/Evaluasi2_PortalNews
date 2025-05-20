@@ -16,7 +16,7 @@ export default function Page() {
         if (!res.ok) throw new Error('Gagal ambil data');
         
         const newsData = await res.json();
-        setData(newsData); // <- benar
+        setData(newsData.articles); // <- benar
         setLoading(false);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -41,7 +41,7 @@ export default function Page() {
       <header className="bg-white py-6 shadow-md">
         <div className="px-4 max-w-xl mx-auto">
           <h1 className="text-3xl md:text-4xl font-bold text-orange-500 text-center">
-            Berita Kompas Nasional
+            Berita Ekonomi Tempo
           </h1>
         </div>
       </header>
@@ -85,7 +85,7 @@ export default function Page() {
       {/* Footer */}
       <footer className="bg-orange-600 text-white py-4 mt-8">
         <div className="container mx-auto px-4 text-center">
-          <p>© {new Date().getFullYear()} Kompas</p>
+          <p>© {new Date().getFullYear()} Tempo</p>
         </div>
       </footer>
     </div>

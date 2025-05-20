@@ -1,100 +1,80 @@
-// /app/api/scrape-kompas-home/route.ts
-import { NextResponse } from 'next/server'
-import puppeteer from 'puppeteer'
+import { NextResponse } from 'next/server';
+import axios from 'axios';
+import * as cheerio from 'cheerio';
+
+const TARGET_URL = 'https://www.kompas.com/sains/indeks';
 
 export async function GET() {
-  const BASE_URL = 'https://www.kompas.com'
-
   try {
-    console.log('🟡 Launching Puppeteer...')
-    const browser = await puppeteer.launch({ headless: 'new' })
-    const page = await browser.newPage()
+    const { data: html } = await axios.get(TARGET_URL, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36',
+      },
+    });
 
-    await page.setUserAgent(
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
-    )
+    const $ = cheerio.load(html);
 
-    await page.goto(BASE_URL, { waitUntil: 'networkidle2', timeout: 0 })
+    const articles: {
+      title: string;
+      url: string;
+      date: string;
+      image?: string;
+    }[] = [];
 
-    await autoScroll(page)
+    $('div.articleItem').each((_, el) => {
+      const anchor = $(el).find('a.article-link');
+      const url = anchor.attr('href');
+      const title = $(el).find('h2.articleTitle').text().trim();
 
-const results = await page.evaluate(() => {
-  const items: {
-    title: string
-    url: string
-    category: string
-    slug: string
-    image: string
-    date: string
-  }[] = []
+      if (!url || !title) return;
 
-  const bulan = [
-    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-  ]
+      // Ambil tanggal dari URL → /read/YYYY/MM/DD/
+      const dateMatch = url.match(/\/read\/(\d{4})\/(\d{2})\/(\d{2})\//);
+      let date = '';
+      if (dateMatch) {
+        const [_, year, month, day] = dateMatch;
+        date = formatDate(`${year}-${month}-${day}`);
+      } else {
+        date = getTodayDate(); // fallback
+      }
 
-  const nodes = document.querySelectorAll('.hlItem')
-  nodes.forEach((node) => {
-    const linkEl = node.querySelector('a')
-    const titleEl = node.querySelector('h1.hlTitle')
-    const categoryEl = node.querySelector('.hlChannel')
-    const imageEl = node.querySelector('img.lozad.fade')
+      // Gambar (jika ada)
+      const image = $(el).find('.articleItem-img img').attr('src') || undefined;
 
-    const href = linkEl?.getAttribute('href') || ''
-    const title = titleEl?.textContent?.trim() || ''
-    const category = categoryEl?.textContent?.trim() || ''
-    const image = imageEl?.getAttribute('data-src') || ''
-    const url = href.startsWith('http') ? href : `https://www.kompas.com${href}`
-    const slug = url.split('/').filter(Boolean).pop() || ''
+      articles.push({
+        title,
+        url,
+        date,
+        image,
+      });
+    });
 
-    // ✅ Extract tanggal dari URL
-    let date = ''
-    const dateMatch = href.match(/\/read\/(\d{4})\/(\d{2})\/(\d{2})\//)
-    if (dateMatch) {
-      const [_, y, m, d] = dateMatch
-      date = `${d} ${bulan[parseInt(m) - 1]} ${y}`
-    }
-
-    if (title && href) {
-      items.push({ title, url, category, slug, image, date })
-    }
-  })
-
-  return items
-})
-
-
-
-    console.log(`🎯 Total berita ditemukan: ${results.length}`)
-    results.forEach((r, i) => {
-      console.log(`✅ [${i + 1}] ${r.title} (${r.category})`)
-      console.log(`    → ${r.url}`)
-    })
-
-    await browser.close()
-
-    return NextResponse.json(results)
-  } catch (err) {
-    console.error('❌ Puppeteer scrape error:', err)
-    return NextResponse.json({ error: 'Failed to scrape Kompas homepage' }, { status: 500 })
+    return NextResponse.json({ articles });
+  } catch (error) {
+    console.error('Scrape Kompas gagal:', error);
+    return NextResponse.json({ error: 'Gagal scrape Kompas' }, { status: 500 });
   }
 }
 
-async function autoScroll(page: puppeteer.Page) {
-  await page.evaluate(async () => {
-    await new Promise<void>((resolve) => {
-      let totalHeight = 0
-      const distance = 300
-      const timer = setInterval(() => {
-        const scrollHeight = document.body.scrollHeight
-        window.scrollBy(0, distance)
-        totalHeight += distance
+// Format YYYY-MM-DD → 20 Mei 2025
+function formatDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('id-ID', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'Asia/Jakarta',
+  });
+}
 
-        if (totalHeight >= scrollHeight - window.innerHeight) {
-          clearInterval(timer)
-          resolve()
-        }
-      }, 200)
-    })
-  })
+// Fallback: tanggal hari ini
+function getTodayDate(): string {
+  const today = new Date();
+  return today.toLocaleDateString('id-ID', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'Asia/Jakarta',
+  });
 }
